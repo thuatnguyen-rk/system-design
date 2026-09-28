@@ -8,7 +8,7 @@ Status: **listed** (no folder yet) · **ready** (folder, not written) · **in pr
 
 | # | Topic | Status | Path |
 | --- | --- | --- | --- |
-| 1 | Caching | ready | [primitives/caching](primitives/caching) |
+| 1 | Caching | in progress | [primitives/caching](primitives/caching) |
 | 2 | Load balancing | listed | |
 | 3 | Rate limiting | listed | |
 | 4 | Queues and async processing | listed | |

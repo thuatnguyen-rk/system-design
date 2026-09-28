@@ -1,3 +1,53 @@
 name: caching
 
-services: {}
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "16mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      ORIGIN_DELAY_MS: ${ORIGIN_DELAY_MS:-200}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
+      CACHE_ENABLED: ${CACHE_ENABLED:-true}
+      CACHE_SINGLEFLIGHT: ${CACHE_SINGLEFLIGHT:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  load:
+    build: .
+    command: ["python", "loadgen.py"]
+    environment:
+      API_URL: http://api:8080
+      SCENARIO: ${SCENARIO:-warm}
+      N: ${N:-200}
+      CONCURRENCY: ${CONCURRENCY:-20}
+      KEY: ${KEY:-1}
+      KEYS: ${KEYS:-50}
+    depends_on:
+      api:
+        condition: service_healthy
+    profiles: ["load"]
